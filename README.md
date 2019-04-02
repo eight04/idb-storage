@@ -1,6 +1,9 @@
 idb-storage
 ===========
 
+[![Build Status](https://travis-ci.com/eight04/idb-storage.svg?branch=master)](https://travis-ci.com/eight04/idb-storage)
+[![codecov](https://codecov.io/gh/eight04/idb-storage/branch/master/graph/badge.svg)](https://codecov.io/gh/eight04/idb-storage)
+
 A key/value storage system built on top of IndexedDB. Designed for large binary files.
 
 Features
