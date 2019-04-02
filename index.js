@@ -57,8 +57,9 @@ function createDBConnection({name, version, onupgradeneeded, indexedDB = findInd
     }
     const db = await ready;
     let err;
+    let result;
     try {
-      await cb(db);
+      result = await cb(db);
     } catch (_err) {
       err = _err;
     }
@@ -70,16 +71,20 @@ function createDBConnection({name, version, onupgradeneeded, indexedDB = findInd
     if (err) {
       throw err;
     }
+    return result;
   }
   
   function startTransaction(scope, mode, cb) {
-    return use(db => {
+    return use(async db => {
       const transaction = db.transaction(scope, mode);
-      const pending = new Promise((resolve, reject) => {
-        transaction.oncomplete = () => resolve();
-        transaction.onerror = reject;
-      });
-      return Promise.all([cb(transaction), pending]);
+      const [result] = await Promise.all([
+        cb(transaction),
+        new Promise((resolve, reject) => {
+          transaction.oncomplete = () => resolve();
+          transaction.onerror = reject;
+        })
+      ]);
+      return result;
     });
   }
   
@@ -125,6 +130,7 @@ function createIDBStorage({
         return await fn(...args);
       };
     }
+    return target;
   }
   
   function init() {
@@ -205,8 +211,8 @@ function createIDBStorage({
       await connection.startTransaction(["metadata", "resource"], "readwrite", transaction => {
         const metaStore = transaction.objectStore("metadata");
         const resourceStore = transaction.objectStore("resource");
-        metaStore.put(key, newMeta);
-        resourceStore.put(key, value);
+        metaStore.put(newMeta, key);
+        resourceStore.put(value, key);
       });
       cache.meta = newMeta;
       return newMeta;
@@ -246,6 +252,9 @@ function createIDBStorage({
         }
       });
       for (const cache of caches) {
+        if (!cache.meta) {
+          continue;
+        }
         if (cache.meta.stack) {
           cache.meta.stack--;
         } else {
@@ -260,10 +269,14 @@ function createIDBStorage({
       if (!cache.meta) {
         throw new Error(`missing key: ${key}`);
       }
-      return await connection.startTransaction(["resource"], "readonly", transaction => {
+      const value = await connection.startTransaction(["resource"], "readonly", transaction => {
         const store = transaction.objectStore("resource");
         return waitSuccess(store.get(key));
       });
+      if (cache.meta.blobType != null) {
+        return new Blob([value], cache.meta.blobType);
+      }
+      return value;
     });
   }
   
@@ -288,7 +301,7 @@ function createIDBStorage({
     newMeta.stack++;
     await connection.startTransaction(["metadata"], "readwrite", transaction => {
       const store = transaction.objectStore("metadata");
-      store.set(key, newMeta);
+      store.put(newMeta, key);
     });
     cache.meta = newMeta;
   }
