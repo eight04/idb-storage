@@ -1,0 +1,31 @@
+{
+  "name": "idb-storage",
+  "version": "0.0.0",
+  "description": "A storage system built on top of IndexedDB. Designed for large binary files.",
+  "keywords": [
+    "IndexedDB",
+    "storage",
+    "cache",
+    "binary"
+  ],
+  "repository": "eight04/idb-storage",
+  "author": "eight04 <eight04@gmail.com> (https://github.com/eight04)",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "browser": "index.js",
+  "dependencies": {},
+  "scripts": {
+    "lint": "eslint \"**/*.js\" --cache",
+    "test": "npm run lint && c8 --reporter=html mocha",
+    "preversion": "npm test",
+    "version": "npm run build && git add .",
+    "build": "rollup -c",
+    "postversion": "git push --follow-tags && npm publish"
+  },
+  "devDependencies": {
+    "eslint": "^5.5.0",
+    "mocha": "^6.0.2"
+  }
+}
