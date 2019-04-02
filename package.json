@@ -28,6 +28,9 @@
     "c8": "^3.4.0",
     "eslint": "^5.5.0",
     "fake-indexeddb": "^2.1.0",
-    "mocha": "^6.0.2"
+    "mocha": "^6.0.2",
+    "rollup": "^1.8.0",
+    "rollup-plugin-cjs-es": "^0.7.0",
+    "rollup-plugin-terser": "^4.0.4"
   }
 }
