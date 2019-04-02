@@ -1,6 +1,6 @@
 {
   "name": "idb-storage",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A storage system built on top of IndexedDB. Designed for large binary files.",
   "keywords": [
     "IndexedDB",
@@ -33,5 +33,7 @@
     "rollup-plugin-cjs-es": "^0.7.0",
     "rollup-plugin-terser": "^4.0.4"
   },
-  "eslintIgnore": ["dist"]
+  "eslintIgnore": [
+    "dist"
+  ]
 }
