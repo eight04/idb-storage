@@ -1,3 +1,17 @@
+/* eslint-env browser */
+
+const IS_IOS = typeof navigator !== "undefined" &&
+  /iP(hone|(o|a)d);/.test(navigator.userAgent);
+  
+function blobToBuffer(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader;
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(blob);
+  });
+}
+
 function createLock() {
   let process = Promise.resolve();
   return {use, acquire};
@@ -34,7 +48,7 @@ function createDBConnection({name, version, onupgradeneeded, indexedDB = findInd
   }
   let ready;
   let user = 0;
-  return {use};
+  return {use, startTransaction};
   
   async function use(cb) {
     user++;
@@ -71,7 +85,7 @@ function createDBConnection({name, version, onupgradeneeded, indexedDB = findInd
   
   function open() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(name, 1);
+      const request = indexedDB.open(name, version);
       request.onerror = reject;
       request.onsuccess = () => resolve(request.result);
       request.onupgradeneeded = onupgradeneeded;
@@ -92,7 +106,14 @@ function createIDBStorage({
   });
   const keyCache = new Map;
   let ready;
-  return ensureReady({set, delete: delete_, get, getMeta, stackUp});
+  return ensureReady({
+    set,
+    delete: delete_,
+    deleteMany,
+    get,
+    getMeta,
+    stackUp
+  });
   
   function ensureReady(target) {
     for (const [key, fn] of Object.entries(target)) {
@@ -126,64 +147,162 @@ function createIDBStorage({
     };
   }
   
-  async function set(key, value, meta = {}) {
-    const cachedMeta = metaCache.get(key);
-    let stackUp = false;
-    if (cachedMeta) {
-      if (conflictAction === "throw") {
-        throw new Error(`idb-storage key conflict: ${key}`);
-      } else if (conflictAction === "ignore") {
-        return;
-      } else if (conflictAction === "stack") {
-        return await stackUp(key);
+  function withKey(key, cb) {
+    let cache = keyCache.get(key);
+    if (!cache) {
+      cache = buildCache();
+      keyCache.set(key, cache);
+    }
+    return cache.lock.use(() => cb(cache));
+  }
+  
+  async function withKeys(keys, cb) {
+    const caches = keys.map(key => {
+      let cache = keyCache.get(key);
+      if (!cache) {
+        cache = buildCache();
+        keyCache.set(key, cache);
       }
+      return cache;
+    });
+    const releasers = await Promise.all(caches.map(c => c.lock.acquire()));
+    let err;
+    let result;
+    try {
+      result = await cb(caches);
+    } catch (_err) {
+      err = _err;
     }
-    meta.stack = 0;
-    if (IS_IOS && value instanceof Blob) {
-      meta.blobType = value.type;
-      value = await blobToBuffer(value);
-    } else {
-      meta.blobType = null;
+    for (const release of releasers) {
+      release();
     }
-    meta.size = value.size || value.byteLength || value.length; // string?
-    const newMeta = Object.assign({}, cachedMeta, meta);
-    await connection.startTransaction(["metadata", "resource"], "readwrite", async transaction => {
-      const metaStore = transaction.objectStore("metadata");
-      const resStore = transaction.objectStore("resStore");
-      metaStore.put(key, newMeta);
-      resStore.put(key, value);
+    if (err) {
+      throw err;
+    }
+    return result;
+  }
+  
+  function set(key, value, meta = {}) {
+    return withKey(key, async cache => {
+      if (cache.meta) {
+        if (conflictAction === "throw") {
+          throw new Error(`idb-storage key conflict: ${key}`);
+        } else if (conflictAction === "ignore") {
+          return;
+        } else if (conflictAction === "stack") {
+          return await _stackUp(key, cache);
+        }
+      }
+      meta.stack = 0;
+      if (IS_IOS && value instanceof Blob) {
+        meta.blobType = value.type;
+        value = await blobToBuffer(value);
+      } else {
+        meta.blobType = null;
+      }
+      meta.size = value.size || value.byteLength || value.length; // string?
+      const newMeta = Object.assign({}, cache.meta, meta);
+      await connection.startTransaction(["metadata", "resource"], "readwrite", transaction => {
+        const metaStore = transaction.objectStore("metadata");
+        const resourceStore = transaction.objectStore("resource");
+        metaStore.put(key, newMeta);
+        resourceStore.put(key, value);
+      });
+      cache.meta = newMeta;
+      return newMeta;
     });
   }
   
   function delete_(key) {
-    
+    return withKey(key, async cache => {
+      if (!cache.meta) {
+        return;
+      }
+      if (cache.meta.stack) {
+        cache.meta.stack--;
+        return;
+      }
+      await connection.startTransaction(["metadata", "resource"], "readwrite", transaction => {
+        const metaStore = transaction.objectStore("metadata");
+        const resourceStore = transaction.objectStore("resource");
+        metaStore.delete(key);
+        resourceStore.delete(key);
+      });
+      cache.meta = null;
+    });
   }
   
   function deleteMany(keys) {
-    
+    return withKeys(keys, async caches => {
+      await connection.startTransaction(["metadata", "resource"], "readwrite", transaction => {
+        const metaStore = transaction.objectStore("metadata");
+        const resourceStore = transaction.objectStore("resource");
+        for (let i = 0; i < keys.length; i++) {
+          if (!caches[i].meta || caches[i].meta.stack) {
+            continue;
+          }
+          metaStore.delete(keys[i]);
+          resourceStore.delete(keys[i]);
+        }
+      });
+      for (const cache of caches) {
+        if (cache.meta.stack) {
+          cache.meta.stack--;
+        } else {
+          cache.meta = null;
+        }
+      }
+    });
   }
   
   function get(key) {
-    
+    return withKey(key, async cache => {
+      if (!cache.meta) {
+        throw new Error(`missing key: ${key}`);
+      }
+      return await connection.startTransaction(["resource"], "readonly", transaction => {
+        const store = transaction.objectStore("resource");
+        return waitSuccess(store.get(key));
+      });
+    });
   }
   
   function getMeta(key) {
-    return metaCache.get(key);
+    return withKey(key, cache => {
+      if (!cache.meta) {
+        throw new Error(`missing key: ${key}`);
+      }
+      return cache.meta;
+    });
   }
   
   function stackUp(key) {
-    
+    return withKey(key, cache => _stackUp(key, cache));
+  }
+  
+  async function _stackUp(key, cache) {
+    if (!cache.meta) {
+      throw new Error(`missing key: ${key}`);
+    }
+    const newMeta = Object.assign({}, cache.meta);
+    newMeta.stack++;
+    await connection.startTransaction(["metadata"], "readwrite", transaction => {
+      const store = transaction.objectStore("metadata");
+      store.set(key, newMeta);
+    });
+    cache.meta = newMeta;
   }
   
   function onupgradeneeded(e) {
     if (e.oldVersion < 1) {
-      request.result.createObjectStore("metadata");
-      request.result.createObjectStore("resource");
+      e.target.result.createObjectStore("metadata");
+      e.target.result.createObjectStore("resource");
     }
   }
 }
 
 function findIndexedDB() {
+  /* global webkitIndexedDB mozIndexedDB OIndexedDB msIndexedDB */
   return typeof indexedDB !== "undefined" ? indexedDB :
     typeof webkitIndexedDB !== "undefined" ? webkitIndexedDB :
     typeof mozIndexedDB !== "undefined" ? mozIndexedDB :

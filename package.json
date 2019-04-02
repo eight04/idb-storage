@@ -25,6 +25,7 @@
     "postversion": "git push --follow-tags && npm publish"
   },
   "devDependencies": {
+    "c8": "^3.4.0",
     "eslint": "^5.5.0",
     "mocha": "^6.0.2"
   }
