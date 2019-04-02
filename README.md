@@ -21,13 +21,13 @@ Installation
 npm:
 
 ```
-npm install idb-storage
+npm install @eight04/idb-storage
 ```
 
 CDN:
 
 ```html
-<script src="https://unpkg.com/idb-storage/dist/idb-storage.min.js"></script>
+<script src="https://unpkg.com/@eight04/idb-storage/dist/idb-storage.min.js"></script>
 ```
 
 API

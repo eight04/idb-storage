@@ -1,5 +1,5 @@
 {
-  "name": "idb-storage",
+  "name": "@eight04/idb-storage",
   "version": "0.1.0",
   "description": "A storage system built on top of IndexedDB. Designed for large binary files.",
   "keywords": [
@@ -22,7 +22,7 @@
     "preversion": "npm test",
     "version": "npm run build && git add .",
     "build": "rollup -c",
-    "postversion": "git push --follow-tags && npm publish"
+    "postversion": "git push --follow-tags && npm publish --access public"
   },
   "devDependencies": {
     "c8": "^3.4.0",
