@@ -32,5 +32,6 @@
     "rollup": "^1.8.0",
     "rollup-plugin-cjs-es": "^0.7.0",
     "rollup-plugin-terser": "^4.0.4"
-  }
+  },
+  "eslintIgnore": ["dist"]
 }
