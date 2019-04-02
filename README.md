@@ -128,6 +128,10 @@ Similar projects
 Changelog
 ---------
 
+* 0.2.0 (Apr 2, 2019)
+
+  - Breaking: change package name.
+
 * 0.1.0 (Apr 2, 2019)
 
   - First release.
