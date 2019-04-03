@@ -194,7 +194,7 @@ function createIDBStorage({
         if (conflictAction === "throw") {
           throw new Error(`idb-storage key conflict: ${key}`);
         } else if (conflictAction === "ignore") {
-          return;
+          return cache.meta;
         } else if (conflictAction === "stack") {
           return await _stackUp(key, cache);
         }
@@ -304,6 +304,7 @@ function createIDBStorage({
       store.put(newMeta, key);
     });
     cache.meta = newMeta;
+    return newMeta;
   }
   
   function onupgradeneeded(e) {

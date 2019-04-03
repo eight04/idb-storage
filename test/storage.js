@@ -11,8 +11,9 @@ describe("IDBStorage", () => {
     const storage = createIDBStorage({
       name: "foo"
     });
-    await storage.set("foo", "bar", {width: 10, height: 20});
-    const meta = await storage.getMeta("foo");
+    const meta = await storage.set("foo", "bar", {width: 10, height: 20});
+    const meta2 = await storage.getMeta("foo");
+    assert.deepStrictEqual(meta, meta2);
     assert.equal(meta.width, 10);
     assert.equal(meta.height, 20);
     const data = await storage.get("foo");
@@ -26,8 +27,9 @@ describe("IDBStorage", () => {
     const storage = createIDBStorage({
       name: "foo"
     });
-    await storage.set("foo", "bar");
-    await storage.stackUp("foo");
+    const {stack} = await storage.set("foo", "bar");
+    const {stack: stack2} = await storage.stackUp("foo");
+    assert.equal(stack, stack2 - 1);
     await storage.stackUp("foo");
     await storage.delete("foo");
     await storage.get("foo");
