@@ -23,17 +23,28 @@ npm:
 ```
 npm install @eight04/idb-storage
 ```
+```js
+const {createIDBStorage} = require("@eight04/idb-storage");
+
+const storage = createIDBStorage({name: "my-storage"});
+...
+```
 
 CDN:
 
 ```html
 <script src="https://unpkg.com/@eight04/idb-storage/dist/idb-storage.min.js"></script>
 ```
+```js
+/* global idbStorage */
+const storage = idbStorage.createIDBStorage({name: "my-storage"});
+...
+```
 
 Metadata cache
 --------------
 
-This library caches metadata in the memory. This allows us to check the resource existency without accessing the database. However, the downside is that you can't create multiple instances connecting to the same database at the same time, because the cache is not shared between them.
+This library caches metadata in the memory. This allows us to check the resource existency without accessing the database. However, the downside is that you can't create multiple instances connecting to the same database at the same time, because the cache is not shared between them and will get out of sync quickly.
 
 API
 ----
@@ -156,7 +167,7 @@ Changelog
 
 * 0.2.2
 
-  - Add: use resource getter in `get`.
+  - Add: use resource getter in `storage.set`.
 
 * 0.2.1 (Apr 3, 2019)
 
