@@ -59,7 +59,7 @@ const storage = createIDBStorage({
 ### storage.set
 
 ```js
-await storage.set(key, resource, meta = {});
+const meta = await storage.set(key, resource, meta = {});
 ```
 
 Add or update a resource.
@@ -127,6 +127,10 @@ Similar projects
 
 Changelog
 ---------
+
+* 0.2.1 (Apr 3, 2019)
+
+  - Fix: make sure `storage.set` consistenly returns metadata.
 
 * 0.2.0 (Apr 2, 2019)
 
