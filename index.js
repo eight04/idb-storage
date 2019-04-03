@@ -117,7 +117,8 @@ function createIDBStorage({
     deleteMany,
     get,
     getMeta,
-    stackUp
+    stackUp,
+    clear
   });
   
   function ensureReady(target) {
@@ -245,29 +246,43 @@ function createIDBStorage({
   }
   
   function deleteMany(keys) {
+    return _deleteMany(keys);
+  }
+  
+  function _deleteMany(keys, force = false) {
     return withKeys(keys, async caches => {
       await connection.startTransaction(["metadata", "resource"], "readwrite", transaction => {
         const metaStore = transaction.objectStore("metadata");
         const resourceStore = transaction.objectStore("resource");
         for (let i = 0; i < keys.length; i++) {
-          if (!caches[i].meta || caches[i].meta.stack) {
+          if (!force && (!caches[i].meta || caches[i].meta.stack)) {
             continue;
           }
           metaStore.delete(keys[i]);
           resourceStore.delete(keys[i]);
         }
       });
-      for (const cache of caches) {
-        if (!cache.meta) {
-          continue;
+      if (!force) {
+        for (const cache of caches) {
+          if (!cache.meta) {
+            continue;
+          }
+          if (cache.meta.stack) {
+            cache.meta.stack--;
+          } else {
+            cache.meta = null;
+          }
         }
-        if (cache.meta.stack) {
-          cache.meta.stack--;
-        } else {
-          cache.meta = null;
+      } else {
+        for (const key of keys) {
+          keyCache.delete(key);
         }
       }
     });
+  }
+  
+  function clear() {
+    return _deleteMany([...keyCache.keys()], true);
   }
   
   function get(key) {

@@ -82,6 +82,15 @@ describe("IDBStorage", () => {
     assert(await p1);
     await assert.rejects(p2);
   });
+  
+  it("clear", async () => {
+    const storage = createIDBStorage({
+      name: "foo"
+    });
+    await storage.set("foo", "bar");
+    await storage.clear();
+    await assert.rejects(storage.get("foo"));
+  });
 });
 
 describe("conflictAction", () => {
