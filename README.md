@@ -30,6 +30,11 @@ CDN:
 <script src="https://unpkg.com/@eight04/idb-storage/dist/idb-storage.min.js"></script>
 ```
 
+Metadata cache
+--------------
+
+This library caches metadata in the memory. This allows us to check the resource existency without accessing the database. However, the downside is that you can't create multiple instances connecting to the same database at the same time, because the cache is not shared between them.
+
 API
 ----
 
@@ -49,7 +54,7 @@ const storage = createIDBStorage({
 
 `name` is the name of the IndexedDB, which will be sent to `indexedDB.open`.
 
-`conflictAction` controls the behavior of `storage.set` when the key is already exists. There are 4 available values:
+`conflictAction` controls the behavior of `storage.set` when the key already exists. There are 4 available values:
 
 * `throw` - Throw an error.
 * `ignore` - Do nothing. The item won't be put into the database.
@@ -76,7 +81,7 @@ Add or update a resource.
 
 * `blobType` - on iOS, you can't save `Blob` object to IndexedDB, so the library will convert the blob into array buffer. When reading the resource back, the library checks this field to know whether it should convert the array buffer back to a blob.
 * `size` - the size of the resource i.e. `blob.size || arrayBuffer.byteLength || string.length`.
-* `stack` - a special property controling when to delete a resource. When `stack` is greater than 0, calling `storage.delete` won't delete the resource but decrease `stack` by 1.
+* `stack` - a special property controlling when to delete a resource. When `stack` is greater than 0, calling `storage.delete` won't delete the resource but decrease `stack` by 1.
 
 When the second argument is a function, it is treated as a resource getter. You can use this method to avoid parallel fetching when the function is called multiple times:
 
@@ -159,7 +164,7 @@ Changelog
 
 * 0.2.0 (Apr 2, 2019)
 
-  - Breaking: change package name.
+  - Breaking: change the package name.
 
 * 0.1.0 (Apr 2, 2019)
 
