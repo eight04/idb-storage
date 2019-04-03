@@ -60,6 +60,10 @@ const storage = createIDBStorage({
 
 ```js
 const meta = await storage.set(key, resource, meta = {});
+const meta = await storage.set(
+  key,
+  resourceGetter: async () => ({resource, meta = {}})
+);
 ```
 
 Add or update a resource.
@@ -73,6 +77,23 @@ Add or update a resource.
 * `blobType` - on iOS, you can't save `Blob` object to IndexedDB, so the library will convert the blob into array buffer. When reading the resource back, the library checks this field to know whether it should convert the array buffer back to a blob.
 * `size` - the size of the resource i.e. `blob.size || arrayBuffer.byteLength || string.length`.
 * `stack` - a special property controling when to delete a resource. When `stack` is greater than 0, calling `storage.delete` won't delete the resource but decrease `stack` by 1.
+
+When the second argument is a function, it is treated as a resource getter. You can use this method to avoid parallel fetching when the function is called multiple times:
+
+```js
+function addResource(url) {
+  storage.set(url, async () => {
+    const r = await fetch(url);
+    const blob = await r.blob();
+    return {resource: blob};
+  });
+}
+
+addResource("http://example.com");
+addResource("http://example.com");
+// the second call will fail with a `key alredy exists` error and `fetch` will
+// only be called once.
+```
 
 ### storage.delete
 

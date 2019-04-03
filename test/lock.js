@@ -2,10 +2,7 @@
 
 const assert = require("assert");
 const {createLock} = require("..");
-
-function delay(t) {
-  return new Promise(resolve => setTimeout(resolve, t));
-}
+const {delay} = require("./util");
 
 describe("lock", () => {
   it("use", async () => {

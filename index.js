@@ -188,7 +188,7 @@ function createIDBStorage({
     return result;
   }
   
-  function set(key, value, meta = {}) {
+  function set(key, value, meta) {
     return withKey(key, async cache => {
       if (cache.meta) {
         if (conflictAction === "throw") {
@@ -198,6 +198,12 @@ function createIDBStorage({
         } else if (conflictAction === "stack") {
           return await _stackUp(key, cache);
         }
+      }
+      if (typeof value === "function") {
+        ({resource: value, meta} = await value());
+      }
+      if (!meta) {
+        meta = {};
       }
       meta.stack = 0;
       if (IS_IOS && value instanceof Blob) {

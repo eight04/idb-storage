@@ -1,6 +1,7 @@
 /* eslint-env mocha */
 const assert = require("assert");
 const {createIDBStorage} = require("..");
+const {delay} = require("./util");
 
 before(() => {
   require("fake-indexeddb/auto");
@@ -64,6 +65,22 @@ describe("IDBStorage", () => {
     // fail
     await storage.delete("not-exist-key-3");
     await storage.deleteMany(["not-exist-key-4", "not-exist-key-5"]);
+  });
+  
+  it("resource getter", async () => {
+    const storage = createIDBStorage({
+      name: "resource-getter"
+    });
+    function doSet() {
+      return storage.set("foo", async () => {
+        await delay(100);
+        return {resource: "bar"};
+      });
+    }
+    const p1 = doSet();
+    const p2 = doSet();
+    assert(await p1);
+    await assert.rejects(p2);
   });
 });
 
