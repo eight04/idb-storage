@@ -1,6 +1,6 @@
 {
   "name": "@eight04/idb-storage",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A storage system built on top of IndexedDB. Designed for large binary files.",
   "keywords": [
     "IndexedDB",
