@@ -14,20 +14,34 @@ function blobToBuffer(blob) {
 
 function createLock() {
   let process = Promise.resolve();
-  return {use, acquire};
+  const self = {use, acquire, length: 0};
+  return self;
   
   function use(cb) {
-    const result = process.then(cb);
+    self.length++;
+    const result = process
+      .then(cb)
+      .then(r => {
+        self.length--;
+        return r;
+      }, err => {
+        self.length--;
+        throw err;
+      });
     process = result.catch(() => {});
     return result;
   }
   
   function acquire() {
+    self.length++;
     let resolve;
     const acquired = process.then(() => resolve);
     process = new Promise(_resolve => {
       resolve = _resolve;
-    });
+    })
+      .then(() => {
+        self.length--;
+      });
     return acquired;
   }
 }
@@ -227,22 +241,7 @@ function createIDBStorage({
   }
   
   function delete_(key) {
-    return withKey(key, async cache => {
-      if (!cache.meta) {
-        return;
-      }
-      if (cache.meta.stack) {
-        cache.meta.stack--;
-        return;
-      }
-      await connection.startTransaction(["metadata", "resource"], "readwrite", transaction => {
-        const metaStore = transaction.objectStore("metadata");
-        const resourceStore = transaction.objectStore("resource");
-        metaStore.delete(key);
-        resourceStore.delete(key);
-      });
-      cache.meta = null;
-    });
+    return _deleteMany([key]);
   }
   
   function deleteMany(keys) {
@@ -262,20 +261,13 @@ function createIDBStorage({
           resourceStore.delete(keys[i]);
         }
       });
-      if (!force) {
-        for (const cache of caches) {
-          if (!cache.meta) {
-            continue;
-          }
-          if (cache.meta.stack) {
-            cache.meta.stack--;
-          } else {
-            cache.meta = null;
-          }
-        }
-      } else {
-        for (const key of keys) {
-          keyCache.delete(key);
+      for (let i = 0; i < keys.length; i++) {
+        if (!force && caches[i].meta && caches[i].meta.stack) {
+          caches[i].meta.stack--;
+        } else if (caches[i].lock.length > 1) {
+          caches[i].meta = null;
+        } else {
+          keyCache.delete(keys[i]);
         }
       }
     });

@@ -157,6 +157,14 @@ Increase `stack` property by 1.
 
 Throw if the resource doesn't exist.
 
+### storage.clear
+
+```js
+await storage.clear();
+```
+
+Clear the entire storage. This method also cleanup the metadata cache.
+
 Similar projects
 ----------------
 
