@@ -149,6 +149,10 @@ Similar projects
 Changelog
 ---------
 
+* 0.2.2
+
+  - Add: use resource getter in `get`.
+
 * 0.2.1 (Apr 3, 2019)
 
   - Fix: make sure `storage.set` consistenly returns metadata.
