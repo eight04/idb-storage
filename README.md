@@ -173,6 +173,11 @@ Similar projects
 Changelog
 ---------
 
+* 0.2.3 (Apr 3, 2019)
+
+  - Fix: `storage.delete` is not reliable.
+  - Add: `storage.clear`.
+
 * 0.2.2
 
   - Add: use resource getter in `storage.set`.
