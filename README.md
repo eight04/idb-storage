@@ -13,7 +13,7 @@ Features
 * Retrieve metadata and the binary separately.
 * Key conflict action.
 * Batch operation.
-* Operations on the same key are queued.
+* Operations are queued and operations on the same key share a same lock.
 
 Installation
 ------------
@@ -163,7 +163,15 @@ Throw if the resource doesn't exist.
 await storage.clear();
 ```
 
-Clear the entire storage. This method also cleanup the metadata cache.
+Clear all resources.
+
+### storage.clearAll
+
+```js
+await storage.clearAll();
+```
+
+Drop the entire database. This method blocks all other operations.
 
 Similar projects
 ----------------
@@ -172,6 +180,11 @@ Similar projects
 
 Changelog
 ---------
+
+* 0.3.0 (Apr 4, 2019)
+
+  - Refactor: operation queue.
+  - Add: `storage.clearAll`.
 
 * 0.2.3 (Apr 3, 2019)
 
