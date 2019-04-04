@@ -12,6 +12,88 @@ function blobToBuffer(blob) {
   });
 }
 
+function buildAPI({init, api, block}) {
+  const o = {};
+  let firstTask;
+  let lastTask;
+  let ready = false;
+  let initErr;
+  for (const [key, fn] of Object.entries(api)) {
+    const isBlocker = block.includes(key);
+    o[key] = (...args) => {
+      if (!ready) {
+        const task = createTask({
+          fn: () => init().catch(err => {
+            console.error(err);
+            initErr = err;
+          }),
+          isBlocker: true
+        });
+        // this should always be the first task
+        firstTask = lastTask = task;
+        ready = true;
+      }
+      const task = createTask({fn, args, isBlocker});
+      if (!lastTask) {
+        firstTask = lastTask = task;
+      } else {
+        lastTask.next = task;
+        task.prev = lastTask;
+        lastTask = task;
+        if (!firstTask) {
+          firstTask = lastTask;
+        }
+      }
+      deque();
+      return task.q.promise;
+    };
+  }
+  return o;
+  
+  function defer() {
+    const o = {};
+    o.promise = new Promise((resolve, reject) => {
+      o.resolve = resolve;
+      o.reject = reject;
+    });
+    return o;
+  }
+  
+  function createTask({fn, args = [], isBlocker = false, prev, next, q = defer()}) {
+    return {
+      fn, args, isBlocker, prev, next, q
+    };
+  }
+  
+  function deque() {
+    const task = firstTask;
+    if (!task || task.isBlocker && task.prev || task.prev && task.prev.isBlocker) {
+      return;
+    }
+    firstTask = task.next;
+    if (initErr) {
+      task.q.reject(initErr);
+      onDone();
+      return;
+    }
+    task.fn(...task.args)
+      .then(task.q.resolve, task.q.reject)
+      .then(onDone);
+    function onDone() {
+      if (task.prev) {
+        task.prev.next = task.next;
+      }
+      if (task.next) {
+        task.next.prev = task.prev;
+      }
+      if (lastTask === task) {
+        lastTask = null;
+      }
+      deque();
+    }
+  }
+}
+
 function createLock() {
   let process = Promise.resolve();
   const self = {use, acquire, length: 0};
@@ -124,29 +206,20 @@ function createIDBStorage({
     onupgradeneeded
   });
   const keyCache = new Map;
-  let ready;
-  return ensureReady({
-    set,
-    delete: delete_,
-    deleteMany,
-    get,
-    getMeta,
-    stackUp,
-    clear
+  return buildAPI({
+    init,
+    api: {
+      set,
+      delete: delete_,
+      deleteMany,
+      get,
+      getMeta,
+      stackUp,
+      clear,
+      clearAll
+    },
+    block: ["clearAll"]
   });
-  
-  function ensureReady(target) {
-    for (const [key, fn] of Object.entries(target)) {
-      target[key] = async (...args) => {
-        if (!ready) {
-          ready = init();
-        }
-        await ready;
-        return await fn(...args);
-      };
-    }
-    return target;
-  }
   
   function init() {
     return connection.startTransaction(["metadata"], "readonly", async transaction => {
@@ -275,6 +348,25 @@ function createIDBStorage({
   
   function clear() {
     return _deleteMany([...keyCache.keys()], true);
+  }
+  
+  function clearAll() {
+    const keys = [...keyCache.keys()];
+    return withKeys(keys, async caches => {
+      await connection.startTransaction(["metadata", "resource"], "readwrite", transaction => {
+        const metaStore = transaction.objectStore("metadata");
+        const resourceStore = transaction.objectStore("resource");
+        metaStore.clear();
+        resourceStore.clear();
+      });
+      for (let i = 0; i < keys.length; i++) {
+        if (caches[i].lock.length > 1) {
+          caches[i].meta = null;
+        } else {
+          keyCache.delete(keys[i]);
+        }
+      }
+    });
   }
   
   function get(key) {

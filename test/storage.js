@@ -92,7 +92,16 @@ describe("IDBStorage", () => {
     await assert.rejects(storage.get("foo"));
   });
   
-  it("delete queue", async () => {
+  it("clearAll", async () => {
+    const storage = createIDBStorage({
+      name: "foo"
+    });
+    await storage.set("foo", "bar");
+    await storage.clearAll();
+    await assert.rejects(storage.get("foo"));
+  });
+  
+  it("operation queue", async () => {
     const storage = createIDBStorage({
       name: "foo"
     });
@@ -100,7 +109,10 @@ describe("IDBStorage", () => {
     storage.delete("foo");
     storage.set("foo", "baz");
     assert.equal(await storage.get("foo"), "baz");
-    await storage.delete("foo");
+    storage.clearAll();
+    storage.set("bar", "bak");
+    assert.equal(await storage.get("bar"), "bak");
+    await storage.delete("bar");
   });
 });
 
