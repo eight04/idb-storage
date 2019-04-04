@@ -114,6 +114,29 @@ describe("IDBStorage", () => {
     assert.equal(await storage.get("bar"), "bak");
     await storage.delete("bar");
   });
+  
+  it("parallel operations", async () => {
+    const storage = createIDBStorage({
+      name: "foo"
+    });
+    let fooRunning = false;
+    let barRunning = false;
+    const p1 = storage.set("foo", async () => {
+      fooRunning = true;
+      await delay(100);
+      assert(barRunning);
+      return {resource: "foo"};
+    });
+    const p2 = storage.set("bar", async () => {
+      assert(fooRunning);
+      barRunning = true;
+      await delay(100);
+      return {resource: "bar"};
+    });
+    await p1;
+    await p2;
+    await storage.clearAll();
+  });
 });
 
 describe("conflictAction", () => {

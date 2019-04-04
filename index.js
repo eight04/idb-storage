@@ -79,6 +79,7 @@ function buildAPI({init, api, block}) {
     task.fn(...task.args)
       .then(task.q.resolve, task.q.reject)
       .then(onDone);
+    deque();
     function onDone() {
       if (task.prev) {
         task.prev.next = task.next;
