@@ -49,7 +49,7 @@ This library caches metadata in the memory. This allows us to check the resource
 API
 ----
 
-This module has following properties:
+This module exports following members:
 
 * `createIDBStorage` - a factory function which can create a `storage` object.
 
