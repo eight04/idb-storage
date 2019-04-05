@@ -3,7 +3,9 @@ const assert = require("assert");
 const {createIDBStorage} = require("..");
 const {delay} = require("./util");
 
-before(() => {
+before(function () {
+  // this is slow on my laptop...
+  this.timeout(8000);
   require("fake-indexeddb/auto");
 });
 

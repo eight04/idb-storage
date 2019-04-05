@@ -49,10 +49,9 @@ This library caches metadata in the memory. This allows us to check the resource
 API
 ----
 
-This module exports two functions:
+This module exports following members:
 
-* `createLock` - create a `lock` object that can be used to queue up async functions.
-* `createIDBStorage` - create the `storage` object.
+* `createIDBStorage` - a factory function which can create a `storage` object.
 
 ### createIDBStorage
 
