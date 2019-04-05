@@ -180,6 +180,10 @@ Similar projects
 Changelog
 ---------
 
+* 0.4.0 (Apr 5, 2019)
+
+  - Breaking: switch to [@eight04/read-write-lock](https://www.npmjs.com/package/@eight04/read-write-lock).
+
 * 0.3.0 (Apr 4, 2019)
 
   - Refactor: operation queue.
