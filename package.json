@@ -15,7 +15,9 @@
     "dist"
   ],
   "browser": "index.js",
-  "dependencies": {},
+  "dependencies": {
+    "@eight04/read-write-lock": "^0.1.0"
+  },
   "scripts": {
     "lint": "eslint \"**/*.js\" --cache",
     "test": "npm run lint && c8 --reporter=html mocha",
