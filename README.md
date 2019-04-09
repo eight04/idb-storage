@@ -126,6 +126,8 @@ await storage.delete(keys: Array);
 
 Delete multiple resources at once. This allows you to delete multiple resources in a single transaction.
 
+If a key appears multiple times, the resource will be deleted multiple times.
+
 ### storage.get
 
 ```js
@@ -179,6 +181,10 @@ Similar projects
 
 Changelog
 ---------
+
+* 0.4.1 (Apr 9, 2019)
+
+  - Fix: `deleteMany` hangs if there are duplicated keys.
 
 * 0.4.0 (Apr 5, 2019)
 
