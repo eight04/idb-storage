@@ -180,8 +180,8 @@ function createIDBStorage({
   
   function _deleteMany(keys, force = false) {
     return dbLock.read(() =>
-      keyLock.write(keys, async () => {
-        const newMetas = Array(keys.length);
+      keyLock.write(new Set(keys), async () => {
+        const newMetas = new Map;
         await connection.startTransaction(["metadata", "resource"], "readwrite", transaction => {
           const metaStore = transaction.objectStore("metadata");
           const resourceStore = transaction.objectStore("resource");
@@ -193,19 +193,20 @@ function createIDBStorage({
             if (force || !oldMeta.stack) {
               metaStore.delete(keys[i]);
               resourceStore.delete(keys[i]);
+              newMetas.set(keys[i], null);
               continue;
             }
-            const newMeta = Object.assign({}, oldMeta);
+            const newMeta = newMetas.get(keys[i]) || Object.assign({}, oldMeta);
             newMeta.stack--;
             metaStore.put(newMeta, keys[i]);
-            newMetas[i] = newMeta;
+            newMetas.set(keys[i], newMeta);
           }
         });
-        for (let i = 0; i < keys.length; i++) {
-          if (newMetas[i]) {
-            metaCache.set(keys[i], newMetas[i]);
+        for (const [key, newMeta] of newMetas.entries()) {
+          if (newMeta) {
+            metaCache.set(key, newMeta);
           } else {
-            metaCache.delete(keys[i]);
+            metaCache.delete(key);
           }
         }
       })
