@@ -9,11 +9,18 @@ before(function () {
   require("fake-indexeddb/auto");
 });
 
-describe("IDBStorage", () => {  
+describe("IDBStorage", () => {
+  let storage;
+  
+  beforeEach(() => {
+    storage = createIDBStorage({name: "my-storage"});
+  });
+  
+  afterEach(() => {
+    return storage.clearAll();
+  });
+  
   it("set, get, getMeta, delete", async () => {
-    const storage = createIDBStorage({
-      name: "foo"
-    });
     const meta = await storage.set("foo", "bar", {width: 10, height: 20});
     const meta2 = await storage.getMeta("foo");
     assert.deepStrictEqual(meta, meta2);
@@ -27,9 +34,6 @@ describe("IDBStorage", () => {
   });
   
   it("stackUp", async () => {
-    const storage = createIDBStorage({
-      name: "foo"
-    });
     const {stack} = await storage.set("foo", "bar");
     const {stack: stack2} = await storage.stackUp("foo");
     assert.equal(stack, stack2 - 1);
@@ -43,9 +47,6 @@ describe("IDBStorage", () => {
   });
   
   it("deleteMany", async () => {
-    const storage = createIDBStorage({
-      name: "foo"
-    });
     await Promise.all([
       storage.set("foo", "bar"),
       storage.set("baz", "bak")
@@ -57,10 +58,11 @@ describe("IDBStorage", () => {
     await assert.rejects(storage.get("baz"));
   });
   
+  it("deleteMany: duplicated keys", async () => {
+    await storage.deleteMany(["foo", "foo"]);
+  });
+  
   it("handle empty slots", async () => {
-    const storage = createIDBStorage({
-      name: "foo"
-    });
     // throw
     await assert.rejects(storage.get("not-exist-key"));
     await assert.rejects(storage.stackUp("not-exist-key-2"));
@@ -70,9 +72,6 @@ describe("IDBStorage", () => {
   });
   
   it("resource getter", async () => {
-    const storage = createIDBStorage({
-      name: "resource-getter"
-    });
     function doSet() {
       return storage.set("foo", async () => {
         await delay(100);
@@ -86,27 +85,18 @@ describe("IDBStorage", () => {
   });
   
   it("clear", async () => {
-    const storage = createIDBStorage({
-      name: "foo"
-    });
     await storage.set("foo", "bar");
     await storage.clear();
     await assert.rejects(storage.get("foo"));
   });
   
   it("clearAll", async () => {
-    const storage = createIDBStorage({
-      name: "foo"
-    });
     await storage.set("foo", "bar");
     await storage.clearAll();
     await assert.rejects(storage.get("foo"));
   });
   
   it("operation queue", async () => {
-    const storage = createIDBStorage({
-      name: "foo"
-    });
     storage.set("foo", "bar");
     storage.delete("foo");
     storage.set("foo", "baz");
@@ -118,9 +108,6 @@ describe("IDBStorage", () => {
   });
   
   it("parallel operations", async () => {
-    const storage = createIDBStorage({
-      name: "foo"
-    });
     let fooRunning = false;
     let barRunning = false;
     const p1 = storage.set("foo", async () => {
