@@ -182,6 +182,10 @@ Similar projects
 Changelog
 ---------
 
+* 0.4.2 (Oct 19, 2019)
+
+  - Fix: type of thrown errors.
+
 * 0.4.1 (Apr 9, 2019)
 
   - Fix: `deleteMany` hangs if there are duplicated keys.
