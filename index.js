@@ -8,7 +8,7 @@ function blobToBuffer(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader;
     reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
+    reader.onerror = () => reject(reader.error || new Error("failed to convert Blob to ArrayBuffer"));
     reader.readAsArrayBuffer(blob);
   });
 }
@@ -16,7 +16,7 @@ function blobToBuffer(blob) {
 function waitSuccess(request) {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
-    request.onerror = reject;
+    request.onerror = () => reject(request.error || new Error("IDB request failed"));
   });
 }
 
@@ -62,7 +62,7 @@ function createDBConnection({name, version, onupgradeneeded, indexedDB = findInd
         cb(transaction),
         new Promise((resolve, reject) => {
           transaction.oncomplete = () => resolve();
-          transaction.onerror = reject;
+          transaction.onerror = () => reject(transaction.error || new Error("IDB transaction failed"));
         })
       ]);
       return result;
@@ -72,7 +72,7 @@ function createDBConnection({name, version, onupgradeneeded, indexedDB = findInd
   function open() {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(name, version);
-      request.onerror = reject;
+      request.onerror = () => reject(request.error || new Error("IDB open failed"));
       request.onsuccess = () => resolve(request.result);
       request.onupgradeneeded = onupgradeneeded;
     });
